@@ -155,18 +155,27 @@ unsigned long Reg[6] {
   0x00580005
 };
 
-
 byte tenHz, hundredHz, ones, tens, hundreds, thousands, tenthousands, hundredthousands, millions; 
+#define LE_DELAY 1
+#define Data_write_DELAY 2500
+#define  LD_Wait_Delay 20
 
 void setup() {
 
   Serial.begin(115200);// USB to PC for Debug only
   // initialize the digital pin as an output.
   pinMode(ledPin, OUTPUT);
-  pinMode(ADF4351_LDPin, INPUT); 
-  pinMode (ADF4351_LEPin, OUTPUT);  
   
-  digitalWrite(ADF4351_LEPin, LOW);
+  pinMode(ADF4351_LDPin, INPUT); 
+  pinMode (ADF4351_LEPin, OUTPUT);
+  digitalWrite(ADF4351_LEPin, HIGH);  // disable ADF4351
+  pinMode(ADF4351_CLKPin, OUTPUT);
+  digitalWrite(ADF4351_CLKPin, LOW);  // disable CLK
+  pinMode(ADF4351_DataPin, OUTPUT);
+  digitalWrite(ADF4351_DataPin, LOW);  // Clear data line
+
+  delay(500);                          // wait 
+  digitalWrite(ADF4351_LEPin, LOW);    // enable ADF4351
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
   SPI.setClockDivider(SPI_CLOCK_DIV128);
@@ -178,9 +187,20 @@ void setup() {
 void loop() {
   
      SetADFFreq();
+     int count = 0;
      while (digitalRead(ADF4351_LDPin) == 0) {
           Serial.println("Waitng for LD");
           blinkLed(1000);
+          count = count + 1;
+          Serial.println(count);
+          if (count == LD_Wait_Delay) {  // we waited to x seconds lets try setting up the ADF4351 again
+            blinkLed(500);
+            count = 0;
+            digitalWrite(ADF4351_LEPin, HIGH);  // disable ADF4351
+            delayMicroseconds(LE_DELAY+10);     // lets wait for the device to stabalize       
+            digitalWrite(ADF4351_LEPin, LOW);   // enable it again ADF4351            
+            SetADFFreq();
+          }
      }
      while (digitalRead(ADF4351_LDPin) == 1) {
           Serial.println("We have LD");
@@ -199,24 +219,30 @@ void blinkLed(int leddelay)
 
 void SetADFFreq()
 {
-  Serial.println("ASF write R[5]");
+  Serial.print("Writing ADF reg[5] = ");
+  Serial.println(Reg[5], HEX);
+  Serial.print("Writing ADF reg[4] = ");
+  Serial.println(Reg[4], HEX);
+  Serial.print("Writing ADF reg[3] = ");  
+  Serial.println(Reg[3], HEX);
+  Serial.print("Writing ADF reg[2] = ");  
+  Serial.println(Reg[2], HEX);
+  Serial.print("Writing ADF reg[1] = ");  
+  Serial.println(Reg[1], HEX);
+  Serial.print("Writing ADF reg[0] = ");
+  Serial.println(Reg[0], HEX);
   WriteADF2(5);
-  delayMicroseconds(2500);
-  Serial.println("ASF write R[4]");
+  delayMicroseconds(Data_write_DELAY);
   WriteADF2(4);
-  delayMicroseconds(2500);
-  Serial.println("ASF write R[3]");
+  delayMicroseconds(Data_write_DELAY);
   WriteADF2(3);
-  delayMicroseconds(2500);
-  Serial.println("ASF write R[2]");
+  delayMicroseconds(Data_write_DELAY);
   WriteADF2(2);
-  delayMicroseconds(2500);
-  Serial.println("ASF write R[1]");
+  delayMicroseconds(Data_write_DELAY);
   WriteADF2(1);
-  delayMicroseconds(2500);
-  Serial.println("ASF write R[0]");  
+  delayMicroseconds(Data_write_DELAY); 
   WriteADF2(0);
-  delayMicroseconds(2500);
+  delayMicroseconds(Data_write_DELAY);
 }
 
 void WriteADF2(int idx)
@@ -229,10 +255,11 @@ void WriteADF2(int idx)
 
 int WriteADF(byte a1, byte a2, byte a3, byte a4) {
   // write over SPI to ADF4350
-  SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE0);
+  blinkLed(250);
+  SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE0));
   digitalWrite(ADF4351_LEPin, LOW);
   // delay to for clock
-  delayMicroseconds(3);               // wait for clock to start a cycle - ADF4351 - LE setup time min 20ns
+  delayMicroseconds(LE_DELAY);         // wait for clock to start a cycle - ADF4351 - LE setup time min 20ns
                                       // - ADF4351 - DATA to CLK setup time min 10ns
                                       // - ADF4351 - DATA to CLK hold time min 10ns
                                       // - ADF4351 - CLK high duration min 25ns
@@ -242,13 +269,13 @@ int WriteADF(byte a1, byte a2, byte a3, byte a4) {
   SPI.transfer(a2);
   SPI.transfer(a3);
   SPI.transfer(a4);
-  delayMicroseconds(3);               // wait for clock to finish a cycle  - ADF4351 - CLK to LE setup time min 10ns
+  delayMicroseconds(LE_DELAY);               // wait for clock to finish a cycle  - ADF4351 - CLK to LE setup time min 10ns
   Toggle();
   SPI.endTransaction();
 }
 int Toggle() {
 
   digitalWrite(ADF4351_LEPin, HIGH);
-  delayMicroseconds(3);               // wait for clock to finish a cycle - ADF4351 - LE Pulse width is min 20ns
+  delayMicroseconds(LE_DELAY);               // wait for clock to finish a cycle - ADF4351 - LE Pulse width is min 20ns
   digitalWrite(ADF4351_LEPin, LOW);
 }
