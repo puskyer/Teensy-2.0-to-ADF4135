@@ -176,17 +176,21 @@ void setup() {
 
   delay(500);                          // wait 
   digitalWrite(ADF4351_LEPin, LOW);    // enable ADF4351
-  SPI.setDataMode(SPI_MODE0);
-  SPI.setBitOrder(MSBFIRST);
-  SPI.setClockDivider(SPI_CLOCK_DIV128);
   SPI.begin();
   delay(500);
 
 }
 
 void loop() {
-  
+
+     blinkLed(2000);
+     // before starting to program the chip lets wait for it to stabalize after a poweron
      SetADFFreq();
+     delayMicroseconds(500);               // once the new peramiters are in, restart the ADF4351
+     digitalWrite(ADF4351_LEPin, HIGH);  // disable ADF4351
+     delayMicroseconds(500);             // wait for things to stabalize
+     digitalWrite(ADF4351_LEPin, LOW);   // enable ADF4351
+     delayMicroseconds(500);            // wait for things to stabalize
      int count = 0;
      while (digitalRead(ADF4351_LDPin) == 0) {
           Serial.println("Waitng for LD");
@@ -214,7 +218,7 @@ void blinkLed(int leddelay)
   digitalWrite(ledPin, HIGH);       // set the LED on
   delay(leddelay);                  // wait for a second
   digitalWrite(ledPin, LOW);        // set the LED off
-  delay(leddelay);                  // wait for a second
+  delay(leddelay/2);                  // wait for 1/2 the leddelay
 }
 
 void SetADFFreq()
@@ -248,15 +252,16 @@ void SetADFFreq()
 void WriteADF2(int idx)
 { // make 4 byte from integer for SPI-Transfer
   byte buf[4];
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 4; i++){
     buf[i] = (byte)(Reg[idx] >> (i * 8));
+  }
   WriteADF(buf[3], buf[2], buf[1], buf[0]);
 }
 
 int WriteADF(byte a1, byte a2, byte a3, byte a4) {
   // write over SPI to ADF4350
   blinkLed(250);
-  SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI_MODE0));
+  SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
   digitalWrite(ADF4351_LEPin, LOW);
   // delay to for clock
   delayMicroseconds(LE_DELAY);         // wait for clock to start a cycle - ADF4351 - LE setup time min 20ns
