@@ -1,2 +1,2 @@
-# Teensy-2.0-to-ADF4135
-Control ADF4135 via a Teensy++ 2.0
+# Teensy-2.0-to-ADF4150
+Control a ADF4150 via a Teensy++ 2.0
