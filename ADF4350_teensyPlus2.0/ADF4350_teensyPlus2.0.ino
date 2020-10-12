@@ -3,11 +3,11 @@
 // IDE: Arduino 1.8.13 or up without spec. Library
 // License: 
 
-/*     Hardware connection Teensy++ 2.0 (5V TTL Logic) to ADF4351 PLL-Board (3.3V TTL logic)
+/*     Hardware connection Teensy++ 2.0 (5V TTL Logic) to ADF4350 PLL-Board (3.3V TTL logic)
        RF output: 33Mhz - 4.4Ghz ~ 3 dbm to ADL5350 (LF to 4 GHz High Linearity Y-Mixer)
-       Teensy++ 2.0 + ADF4351 + ADL5350 draw xxxmA on 5V USB
+       Teensy++ 2.0 + ADF4350 + ADL5350 draw xxxmA on 5V USB
        Teensy++ 2.0 +5v @ 50 mA       
-       ADF4351      +5v @ 50 mA
+       ADF4350      +5v @ 50 mA
        ADL5350      +5v @ 50 mA
 
 
@@ -23,7 +23,7 @@ PWN INT1  1|[ ]PD1-SDA               PB4[ ]|24  PWN                             
           4|[ ]PD4     [ ] [ ]  SCLK-PB1[ ]|21  ---(_1.5k_)-------|--.----Clock---|            |   |      +5V [ ]|
           5|[ ]PD5      P   P     SS-PB0[ ]|20  ---(_1.5k_)-------|--|--.--LE-----| 3.3V TTL   |   |             |
 onboardLED6|[ ]PD6      E   E        PE7[ ]|19  INT7  |-(_3k_)----!  |  |         |    Logic   |   |             |
-          7|[ ]PD7      5   4        PE6[ ]|18  INT6  |-(_3k_)-------!  |         |   ADF4351  |   |   ADL5350   |
+          7|[ ]PD7      5   4        PE6[ ]|18  INT6  |-(_3k_)-------!  |         |   ADF4350  |   |   ADL5350   |
           8|[ ]PE0                   GND[ ]|GND ------.-(_3k_)----------!         |  PLL Board |   |             |
           9|[ ]PE1                  AREF[ ]|AREF                |--------LD-------|____________|   |_____________| 
          10|[ ]PC0                   PF0[ ]|38  A0              |                                        |RFOUT 
@@ -34,9 +34,9 @@ PWN      14|[ ]PC4     PA7[ ] [ ]PA3 PF4[ ]|42  A4              |      |
 PWN      15|[ ]PC5                   PF5[ ]|43  A5              !-->|-----(PB6/Pin 26)
 PWN      16|[ ]PC6    5V  GND RST    PF6[ ]|44  A6              (Diode)|
          17|[ ]PC7    [ ] [ ] [ ]    PF7[ ]|45  A7                     (_1.2k_)--(GND)
-           |_______________________________|                     This is requried because ADF4351 is a ttl 3.3 and 
+           |_______________________________|                     This is requried because ADF4350 is a ttl 3.3 and 
                                                                  the Teensy++ 2.0 is TTL 5v
-ADF4351
+ADF4350
 LD - Lock Detect Output Pin. This pin outputs a logic high to indicate PLL lock. A logic low output indicates loss of PLL lock.
 Clk - Serial Clock Input. Data is clocked into the 32-bit shift register on the CLK rising edge. This input is a high
 impedance CMOS input.
@@ -72,13 +72,13 @@ AGND = DGND = 0V
 1.8V and 3V Logic Levels used
 Ta = T min to T max
 
-// ADF4351 - LE setup time min 20ns
-// ADF4351 - DATA to CLK setup time min 10ns
-// ADF4351 - DATA to CLK hold time min 10ns
-// ADF4351 - CLK high duration min 25ns
-// ADF4351 - CLK low duration  min 25ns
-// ADF4351 - CLK to LE setup time min 10ns
-// ADF4351 - LE Pulse width is min 20ns
+// ADF4350 - LE setup time min 20ns
+// ADF4350 - DATA to CLK setup time min 10ns
+// ADF4350 - DATA to CLK hold time min 10ns
+// ADF4350 - CLK high duration min 25ns
+// ADF4350 - CLK low duration  min 25ns
+// ADF4350 - CLK to LE setup time min 10ns
+// ADF4350 - LE Pulse width is min 20ns
 
  code from main.c from  IanWraithv/24DownConvert.
 
@@ -137,21 +137,35 @@ SPI_MODE3   1                        1                    Falling         Rising
 #include <Wire.h>
 #include <SPI.h>
 
-// Teensy++ 2.0 SPI to ADF4351
-const int ADF4351_LEPin = 20;         //Teensy++ 2.0 SS pin  PB0-  enable ADF4350
-const int ADF4351_DataPin = 22;        //Teensy++ 2.0 MOSI pin PB2
-const int ADF4351_CLKPin = 21;         //Teensy++ 2.0 SCLK pin PB1
-const int ADF4351_LDPin = 26;          //Teensy++ 2.0 PWN(OC1B) pin PB6
+// Teensy++ 2.0 SPI to ADF4350
+const int ADF4350_LEPin = 20;         //Teensy++ 2.0 SS pin  PB0-  enable ADF4350
+const int ADF4350_DataPin = 22;        //Teensy++ 2.0 MOSI pin PB2
+const int ADF4350_CLKPin = 21;         //Teensy++ 2.0 SCLK pin PB1
+const int ADF4350_LDPin = 26;          //Teensy++ 2.0 PWN(OC1B) pin PB6
 const int ledPin = 6;                  // Teensy++ 2.0 has the LED on pin 6
 // 
 // Below are the ADF4350 settings for a 1 GHz +5dBm output from IanWraithv/24DownConvert.
-//ADF4351 Reg's
+//ADF4350 Reg's
+
+
+// Below are the ADF4350 settings for +2dBm and +5dBm output
+// R4 =  0x00AC8034         //+2dBm output
+// R4 =  0x00ac803c        //+5dBm output
+// Below are the ADF4350 settings for a 1,000 GHz
+// R0 =   0x00500000
+// R1 =   0x08008011
+// the above gets me 999.9562MHz
+// Below are the ADF4350 settings for a 1,000.1 GHz
+// R0 = 0x00500010
+// R1 = 0x080083E9
+// the above gets me1.000053GHz
+
 unsigned long Reg[6] {     
-  0x00500000,
-  0x08008011,
+  0x00500010,
+  0x080083E9,
   0x00004E42,
   0x000004B3,
-  0x00ac803c,
+  0x00ac803c,        //+5dBm output
   0x00580005
 };
 
@@ -166,19 +180,15 @@ void setup() {
   // initialize the digital pin as an output.
   pinMode(ledPin, OUTPUT);
   
-  pinMode(ADF4351_LDPin, INPUT); 
-  pinMode (ADF4351_LEPin, OUTPUT);
-  digitalWrite(ADF4351_LEPin, HIGH);  // disable ADF4351
-  pinMode(ADF4351_CLKPin, OUTPUT);
-  digitalWrite(ADF4351_CLKPin, LOW);  // disable CLK
-  pinMode(ADF4351_DataPin, OUTPUT);
-  digitalWrite(ADF4351_DataPin, LOW);  // Clear data line
-
-  delay(500);                          // wait 
-  digitalWrite(ADF4351_LEPin, LOW);    // enable ADF4351
+  pinMode(ADF4350_LDPin, INPUT); 
+  pinMode (ADF4350_LEPin, OUTPUT);
+  pinMode(ADF4350_CLKPin, OUTPUT);
+  //digitalWrite(ADF4350_CLKPin, LOW);  // disable CLK
+  pinMode(ADF4350_DataPin, OUTPUT);
+  //digitalWrite(ADF4350_DataPin, LOW);  // Clear data line
+  reset_ADF4350();
   SPI.begin();
   delay(500);
-
 }
 
 void loop() {
@@ -186,31 +196,36 @@ void loop() {
      blinkLed(2000);
      // before starting to program the chip lets wait for it to stabalize after a poweron
      SetADFFreq();
-     delayMicroseconds(500);               // once the new peramiters are in, restart the ADF4351
-     digitalWrite(ADF4351_LEPin, HIGH);  // disable ADF4351
-     delayMicroseconds(500);             // wait for things to stabalize
-     digitalWrite(ADF4351_LEPin, LOW);   // enable ADF4351
-     delayMicroseconds(500);            // wait for things to stabalize
+     reset_ADF4350();
      int count = 0;
-     while (digitalRead(ADF4351_LDPin) == 0) {
+     while (digitalRead(ADF4350_LDPin) == 0) {
           Serial.println("Waitng for LD");
           blinkLed(1000);
           count = count + 1;
           Serial.println(count);
-          if (count == LD_Wait_Delay) {  // we waited to x seconds lets try setting up the ADF4351 again
+          if (count == LD_Wait_Delay) {  // we waited to x seconds lets try setting up the ADF4350 again
             blinkLed(500);
             count = 0;
-            digitalWrite(ADF4351_LEPin, HIGH);  // disable ADF4351
-            delayMicroseconds(LE_DELAY+10);     // lets wait for the device to stabalize       
-            digitalWrite(ADF4351_LEPin, LOW);   // enable it again ADF4351            
+            reset_ADF4350();           
             SetADFFreq();
+            delayMicroseconds(500);               // once the new peramiters are in, restart the ADF4350
+            reset_ADF4350();
           }
      }
-     while (digitalRead(ADF4351_LDPin) == 1) {
+     while (digitalRead(ADF4350_LDPin) == 1) {
           Serial.println("We have LD");
           blinkLed(2000);
      }     
 }
+
+void reset_ADF4350()
+{
+  digitalWrite(ADF4350_LEPin, HIGH);  // disable ADF4350
+  delayMicroseconds(500);             // wait for things to stabalize
+  digitalWrite(ADF4350_LEPin, LOW);   // enable ADF4350
+  delayMicroseconds(500);            // wait for things to stabalize  
+}
+
 
 
 void blinkLed(int leddelay)
@@ -262,25 +277,25 @@ int WriteADF(byte a1, byte a2, byte a3, byte a4) {
   // write over SPI to ADF4350
   blinkLed(250);
   SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
-  digitalWrite(ADF4351_LEPin, LOW);
+  digitalWrite(ADF4350_LEPin, LOW);
   // delay to for clock
-  delayMicroseconds(LE_DELAY);         // wait for clock to start a cycle - ADF4351 - LE setup time min 20ns
-                                      // - ADF4351 - DATA to CLK setup time min 10ns
-                                      // - ADF4351 - DATA to CLK hold time min 10ns
-                                      // - ADF4351 - CLK high duration min 25ns
-                                      // - ADF4351 - CLK low duration  min 25ns
-                                      // - ADF4351 - LE Pulse width min 20ns
+  delayMicroseconds(LE_DELAY);         // wait for clock to start a cycle - ADF4350 - LE setup time min 20ns
+                                      // - ADF4350 - DATA to CLK setup time min 10ns
+                                      // - ADF4350 - DATA to CLK hold time min 10ns
+                                      // - ADF4350 - CLK high duration min 25ns
+                                      // - ADF4350 - CLK low duration  min 25ns
+                                      // - ADF4350 - LE Pulse width min 20ns
   SPI.transfer(a1);
   SPI.transfer(a2);
   SPI.transfer(a3);
   SPI.transfer(a4);
-  delayMicroseconds(LE_DELAY);               // wait for clock to finish a cycle  - ADF4351 - CLK to LE setup time min 10ns
+  delayMicroseconds(LE_DELAY);               // wait for clock to finish a cycle  - ADF4350 - CLK to LE setup time min 10ns
   Toggle();
   SPI.endTransaction();
 }
 int Toggle() {
 
-  digitalWrite(ADF4351_LEPin, HIGH);
-  delayMicroseconds(LE_DELAY);               // wait for clock to finish a cycle - ADF4351 - LE Pulse width is min 20ns
-  digitalWrite(ADF4351_LEPin, LOW);
+  digitalWrite(ADF4350_LEPin, HIGH);
+  delayMicroseconds(LE_DELAY);               // wait for clock to finish a cycle - ADF4350 - LE Pulse width is min 20ns
+  digitalWrite(ADF4350_LEPin, LOW);
 }
