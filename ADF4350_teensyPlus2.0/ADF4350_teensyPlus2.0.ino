@@ -158,11 +158,15 @@ const int ledPin = 6;                  // Teensy++ 2.0 has the LED on pin 6
 // Below are the ADF4350 settings for a 1,000.1 GHz
 // R0 = 0x00500010
 // R1 = 0x080083E9
-// the above gets me1.000053GHz
+// the above gets me 1.000053GHz
+// Below are the ADF4350 settings for a 1,000 GHz
+// R0 = 0x00500000
+// R1 = 0x08008011        // 22Mhz channel spacing
+// the above gets me 1.0000GHz
 
 unsigned long Reg[6] {     
-  0x00500010,
-  0x080083E9,
+  0x00500000,
+  0x08008011,
   0x00004E42,
   0x000004B3,
   0x00ac803c,        //+5dBm output
